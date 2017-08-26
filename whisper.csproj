@@ -5,5 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="WampSharp" Version="1.2.6.41-beta" />
+    <PackageReference Include="WampSharp.Default.Client" Version="1.2.6.41-beta" />
   </ItemGroup>
 </Project>
