@@ -6,6 +6,7 @@ using WampSharp.V2;
 using WampSharp.V2.Fluent;
 using WampSharp.V2.Client;
 using WampSharp.V2.Rpc;
+using WampSharp.V2.Authentication;
 
 namespace whisper
 {
@@ -19,6 +20,7 @@ namespace whisper
     {
         async Task<string> IWhisper.johan(string input)
         {
+            await Task.Delay(200); // Avoid warning
             return "johan-" + input + "-johan";
         }
     }
@@ -28,14 +30,17 @@ namespace whisper
         static async Task StartWamp()
         {
             WampChannelFactory cf = new WampChannelFactory();
-            var test = new WampSharp.V2.Client.Authenticator();
 
             IWampChannel channel =
                 cf.ConnectToRealm("jdm")
-                       .WebSocketTransport(new Uri("ws://40.86.85.83:443/ws"))
+                       .WebSocketTransport("ws://40.86.85.83:443/ws")
                        .JsonSerialization()
-                       .Authenticator(test)
+                       //.Authenticator(new TicketAuthenticator())
                        .Build();
+            var mon = channel.RealmProxy.Monitor;
+            mon.ConnectionEstablished += (p1, p2) => Console.WriteLine("Established!");
+            mon.ConnectionError += (p1, p2) => Console.WriteLine("Error!");
+            mon.ConnectionBroken += (p1, p2) => Console.WriteLine("Broken!");
             Console.WriteLine("Connecting...");
             await channel.Open();
             Console.WriteLine("Connected!");
