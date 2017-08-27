@@ -29,6 +29,7 @@ namespace whisper
     class Program
     {
         static IAsyncDisposable registration;
+        static IDisposable newWhisperSubscription;
 
         static async Task StartWamp()
         {
@@ -56,12 +57,16 @@ namespace whisper
             registration = await realm.Services.RegisterCallee(instance);
             Console.WriteLine("Registered!");
             ISubject<string> newWhisper = realm.Services.GetSubject<string>("nl.jdm.newWhisper");
+            newWhisperSubscription =
+                newWhisper.Subscribe(name => Console.WriteLine($"New whisper detected: ${name}"));
             newWhisper.OnNext("johan");
         }
 
         static async Task StopWamp()
         {
             Console.WriteLine("Stopping...");
+            if (newWhisperSubscription != null)
+                newWhisperSubscription.Dispose();
             if (registration != null)
                 await registration.DisposeAsync();
             Console.WriteLine("Stopped.");
