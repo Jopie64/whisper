@@ -7,6 +7,7 @@ using WampSharp.V2.Fluent;
 using WampSharp.V2.Client;
 using WampSharp.V2.Rpc;
 using WampSharp.V2.Authentication;
+using System.Reactive.Subjects;
 
 namespace whisper
 {
@@ -27,13 +28,16 @@ namespace whisper
 
     class Program
     {
+        static IAsyncDisposable registration;
+
         static async Task StartWamp()
         {
             WampChannelFactory cf = new WampChannelFactory();
 
             IWampChannel channel =
                 cf.ConnectToRealm("jdm")
-                       .WebSocketTransport("ws://40.86.85.83:443/ws")
+//                       .WebSocketTransport("ws://40.86.85.83:8080/ws")
+                       .WebSocketTransport("ws://ws01.jdm1.maassluis:9001/wamp")
                        .JsonSerialization()
                        //.Authenticator(new TicketAuthenticator())
                        .Build();
@@ -49,15 +53,25 @@ namespace whisper
 
             IWampRealmProxy realm = channel.RealmProxy;
 
-            await realm.Services.RegisterCallee(instance);
+            registration = await realm.Services.RegisterCallee(instance);
             Console.WriteLine("Registered!");
+            ISubject<string> newWhisper = realm.Services.GetSubject<string>("nl.jdm.newWhisper");
+            newWhisper.OnNext("johan");
+        }
+
+        static async Task StopWamp()
+        {
+            Console.WriteLine("Stopping...");
+            if (registration != null)
+                await registration.DisposeAsync();
+            Console.WriteLine("Stopped.");
         }
 
         static void Main(string[] args)
         {
             Console.CancelKeyPress += (v1, v2) =>
             {
-                Console.WriteLine("Stopping...");
+                StopWamp().Wait();
             };
             Console.WriteLine("Starting...");
             Task.Run(async () => { await StartWamp(); }).Wait();
