@@ -30,6 +30,7 @@ namespace whisper
     {
         static IAsyncDisposable registration;
         static IDisposable newWhisperSubscription;
+        static IDisposable discoverSubscription;
 
         static async Task StartWamp()
         {
@@ -59,7 +60,16 @@ namespace whisper
             ISubject<string> newWhisper = realm.Services.GetSubject<string>("nl.jdm.newWhisper");
             newWhisperSubscription =
                 newWhisper.Subscribe(name => Console.WriteLine($"New whisper detected: ${name}"));
+
+            Console.WriteLine("Registering whisper...");
             newWhisper.OnNext("johan");
+
+            discoverSubscription = realm.Services.GetSubject<string>("nl.jdm.discover")
+                .Subscribe(name => 
+                {
+                    Console.WriteLine("Registering whisper...");
+                    newWhisper.OnNext("johan");
+                });
         }
 
         static async Task StopWamp()
@@ -67,6 +77,8 @@ namespace whisper
             Console.WriteLine("Stopping...");
             if (newWhisperSubscription != null)
                 newWhisperSubscription.Dispose();
+            if (discoverSubscription != null)
+                discoverSubscription.Dispose();
             if (registration != null)
                 await registration.DisposeAsync();
             Console.WriteLine("Stopped.");
