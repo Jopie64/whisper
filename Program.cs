@@ -8,6 +8,7 @@ using WampSharp.V2.Client;
 using WampSharp.V2.Rpc;
 using WampSharp.V2.Authentication;
 using System.Reactive.Subjects;
+using System.Reactive;
 
 namespace whisper
 {
@@ -21,7 +22,7 @@ namespace whisper
     {
         async Task<string> IWhisper.johan(string input)
         {
-            await Task.Delay(200); // Avoid warning
+            await Task.Delay(1); // Avoid warning
             return "johan-" + input + "-johan";
         }
     }
@@ -44,32 +45,32 @@ namespace whisper
                        //.Authenticator(new TicketAuthenticator())
                        .Build();
             var mon = channel.RealmProxy.Monitor;
-            mon.ConnectionEstablished += (p1, p2) => Console.WriteLine("Established!");
-            mon.ConnectionError += (p1, p2) => Console.WriteLine("Error!");
-            mon.ConnectionBroken += (p1, p2) => Console.WriteLine("Broken!");
+            mon.ConnectionEstablished += (p1, p2) => Console.WriteLine("Established");
+            mon.ConnectionError += (p1, p2) => Console.WriteLine("Error");
+            mon.ConnectionBroken += (p1, p2) => Console.WriteLine("Broken");
             Console.WriteLine("Connecting...");
             await channel.Open();
-            Console.WriteLine("Connected!");
+            Console.WriteLine("Connected");
 
             IWhisper instance = new Whisper();
 
             IWampRealmProxy realm = channel.RealmProxy;
 
             registration = await realm.Services.RegisterCallee(instance);
-            Console.WriteLine("Registered!");
+            Console.WriteLine("RPC registered");
             ISubject<string> newWhisper = realm.Services.GetSubject<string>("nl.jdm.newWhisper");
             newWhisperSubscription =
-                newWhisper.Subscribe(name => Console.WriteLine($"New whisper detected: ${name}"));
+                newWhisper.Subscribe(name => Console.WriteLine($"New whisper detected: {name}"));
 
-            Console.WriteLine("Registering whisper...");
-            newWhisper.OnNext("johan");
+            Action registerWhisper = () =>
+            {
+                Console.WriteLine("Registering whisper...");
+                newWhisper.OnNext("johan");
+            };
+            registerWhisper();
 
             discoverSubscription = realm.Services.GetSubject<string>("nl.jdm.discover")
-                .Subscribe(name => 
-                {
-                    Console.WriteLine("Registering whisper...");
-                    newWhisper.OnNext("johan");
-                });
+                .Subscribe(_ => registerWhisper());
         }
 
         static async Task StopWamp()
@@ -91,7 +92,7 @@ namespace whisper
                 StopWamp().Wait();
             };
             Console.WriteLine("Starting...");
-            Task.Run(async () => { await StartWamp(); }).Wait();
+            StartWamp().Wait();
             Console.WriteLine("Now waiting for exit...");
             while(true)
             {
